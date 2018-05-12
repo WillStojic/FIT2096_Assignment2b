@@ -11,13 +11,13 @@
 #define GAME_H
 
 #include "Direct3D.h"
-#include "Camera.h"
+#include "FirstPersonCamera.h"
 #include "InputController.h"
 #include "MeshManager.h"
 #include "TextureManager.h"
+#include "CollisionManager.h"
 #include "GameObject.h"
 #include "StaticObject.h"
-#include "GameBoard.h"
 #include "Player.h"
 #include <vector>
 
@@ -29,20 +29,22 @@ class Game
 private:
 	Direct3D* m_renderer;
 	InputController* m_input;
-	Camera* m_currentCam;		
+	FirstPersonCamera* m_currentCam;		
 	MeshManager* m_meshManager;
 	TextureManager* m_textureManager;
+	CollisionManager* m_collisionManager;
 
 	Shader* m_diffuseTexturedShader;
+	Shader* m_diffuseTexturedFogShader;
 
 	// Sprites / Fonts
 	SpriteBatch* m_spriteBatch;
 	SpriteFont* m_arialFont12;
 	SpriteFont* m_arialFont18;
 
-	// Our game data. The Game class only needs to manage four objects for this game.
-	GameBoard* m_gameBoard;
+	// Our game data.
 	Player* m_player;
+	GameObject* placeHolder;
 	StaticObject* m_ground;
 
 	std::wstring m_gemsCollectedText;

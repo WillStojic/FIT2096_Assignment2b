@@ -1,4 +1,4 @@
-/*	FIT2049 - Example Code
+/*	FIT2096 - Example Code
 *	TexturedShader.h
 *	Created by Elliott Wilson - 2015 - Monash University
 *	This subclass of Shader extends the existing functionality so that we can texture our meshes
@@ -14,7 +14,7 @@
 class TexturedShader : public Shader
 {
 private:
-	ID3D11SamplerState* m_textureSampler;	//A sampler is an object that can be "sampled" across a range of values, we use them to represent textures in our shaders
+	ID3D11SamplerState * m_textureSampler;	//A sampler is an object that can be "sampled" across a range of values, we use them to represent textures in our shaders
 											//A Texture is usually a 2D sampler where we can plug values in for the horizontal (u) position and the vertical (v) position
 											//and it will give us a colour back.
 public:

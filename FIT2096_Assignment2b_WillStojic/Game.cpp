@@ -6,7 +6,6 @@
 #include "Game.h"
 #include "TexturedShader.h"
 #include "StaticObject.h"
-#include "FirstPersonCamera.h"
 #include <sstream>
 
 #include "DirectXTK/CommonStates.h"
@@ -18,8 +17,9 @@ Game::Game()
 	m_input = NULL;
 	m_meshManager = NULL;
 	m_textureManager = NULL;
+	m_collisionManager = NULL;
 	m_diffuseTexturedShader = NULL;
-	m_gameBoard = NULL;
+	m_diffuseTexturedFogShader = NULL;
 	m_ground = NULL;
 
 	m_spriteBatch = NULL;
@@ -35,6 +35,8 @@ bool Game::Initialise(Direct3D* renderer, InputController* input)
 	m_input = input;
 	m_meshManager = new MeshManager();
 	m_textureManager = new TextureManager();
+	m_currentCam = new FirstPersonCamera(m_input);
+	//m_collisionManager = new CollisionManager(&m_player, &placeHolder);
 
 	if (!InitShaders())
 		return false;
@@ -50,16 +52,17 @@ bool Game::Initialise(Direct3D* renderer, InputController* input)
 	InitGameWorld();
 	RefreshUI();
 
-	//m_currentCam = new Camera();
-	m_currentCam = new FirstPersonCamera(m_input, m_player);
-
 	return true;
 }
 
 bool Game::InitShaders()
 {
 	m_diffuseTexturedShader = new TexturedShader();
-	if (!m_diffuseTexturedShader->Initialise(m_renderer->GetDevice(), L"Assets/Shaders/VertexShader.vs", L"Assets/Shaders/TexturedPixelShader.ps"))
+	if (!m_diffuseTexturedShader->Initialise(m_renderer->GetDevice(), L"Assets/Shaders/VertexShader.vs", L"Assets/Shaders/DiffuseTexturedPixelShader.ps"))
+		return false;
+
+	m_diffuseTexturedFogShader = new TexturedShader();
+	if (!m_diffuseTexturedFogShader->Initialise(m_renderer->GetDevice(), L"Assets/Shaders/VertexShader.vs", L"Assets/Shaders/DiffuseTexturedFogPixelShader.ps"))
 		return false;
 
 	return true;
@@ -160,19 +163,10 @@ void Game::InitGameWorld()
 											m_textureManager->GetTexture("Assets/Textures/ground.png"),
 											Vector3::Zero);
 
-	// A GameBoard creates the world layout and manages the Tiles.
-	// We pass it the Mesh and Texture managers as it will be creating tiles and walls
-	m_gameBoard = new GameBoard(m_meshManager, m_textureManager, m_diffuseTexturedShader);
-
-
 	// A player will select a random starting position.
 	// We need to tell the player about the board it is standing on so it can validate movement
 	// and ask the board what type of tile it is standing on.
-	m_player = new Player(NULL,
-						  NULL,
-						  NULL,
-						  m_input,
-						  m_gameBoard);
+	m_player = new Player(m_input, m_currentCam);
 }
 
 void Game::Update(float timestep)
@@ -181,10 +175,10 @@ void Game::Update(float timestep)
 	// Our only job out here is to Update the board and player, and check if the game is over.
 
 	m_input->BeginUpdate();
-
-	m_gameBoard->Update(timestep, m_player);
 	
 	m_player->Update(timestep);
+
+	//m_collisionManager->CheckCollisions();
 
 	RefreshUI();
 
@@ -202,12 +196,10 @@ void Game::Update(float timestep)
 
 void Game::Render()
 {
-	m_renderer->BeginScene(0.2f, 0.2f, 0.2f, 1.0f);
+	m_renderer->BeginScene(0.8f, 1.0f, 0.9f, 1.0f);
 
 	m_ground->Render(m_renderer, m_currentCam);
 
-	// The board renders all of its tiles
-	m_gameBoard->Render(m_renderer, m_currentCam);
 	m_player->Render(m_renderer, m_currentCam);
 
 	DrawUI();
@@ -280,12 +272,6 @@ void Game::Shutdown()
 		m_ground = NULL;
 	}
 
-	if (m_gameBoard)
-	{
-		delete m_gameBoard;
-		m_gameBoard = NULL;
-	}
-
 	if (m_currentCam)
 	{
 		delete m_currentCam;
@@ -295,6 +281,13 @@ void Game::Shutdown()
 	if (m_diffuseTexturedShader)
 	{
 		m_diffuseTexturedShader->Release();
+		delete m_diffuseTexturedShader;
+		m_diffuseTexturedShader = NULL;
+	}
+
+	if (m_diffuseTexturedFogShader)
+	{
+		m_diffuseTexturedFogShader->Release();
 		delete m_diffuseTexturedShader;
 		m_diffuseTexturedShader = NULL;
 	}

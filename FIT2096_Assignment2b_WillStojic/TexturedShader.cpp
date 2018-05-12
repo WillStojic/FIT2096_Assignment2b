@@ -1,4 +1,4 @@
-/*	FIT2049 - Example Code
+/*	FIT2096 - Example Code
 *	TexturedShader.cpp
 *	Created by Elliott Wilson - 2015 - Monash University
 *	Implementation of TexturedShader.h

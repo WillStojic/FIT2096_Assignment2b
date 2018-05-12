@@ -21,11 +21,8 @@ public:
 	void ReleaseMesh(Mesh* mesh);
 	void Release();
 
-	// Weel four exercises
 	bool LoadTriangle(Direct3D* renderer, const char* idnetifier);
 	bool LoadSquare(Direct3D* renderer, const char* idnetifier);
-	bool LoadAbstractArt(Direct3D* renderer, const char* idnetifier);
-	bool LoadAbstractArt3D(Direct3D* renderer, const char* idnetifier);
 
 };
 

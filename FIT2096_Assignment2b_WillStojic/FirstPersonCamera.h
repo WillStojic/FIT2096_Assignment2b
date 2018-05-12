@@ -3,7 +3,6 @@
 
 #include "Camera.h"
 #include "InputController.h"
-#include "Player.h"
 
 class FirstPersonCamera : public Camera
 {
@@ -15,12 +14,15 @@ private:
 
 	float m_heading;
 	float m_pitch;
-
-	Player* m_attachedPlayer;
 public:
-	FirstPersonCamera(InputController* input, Player* player);
+	FirstPersonCamera(InputController* input);
 
-	void Update(float timestep);
+	float GetHeading() { return m_heading; }
+	float GetPitch() { return m_pitch; }
+	float GetRotationSpeed() const { return m_rotationSpeed; }
+
+	void SetHeading(float heading) { m_heading = heading; }
+	void SetPitch(float pitch) { m_pitch = pitch; }
 };
 
 #endif

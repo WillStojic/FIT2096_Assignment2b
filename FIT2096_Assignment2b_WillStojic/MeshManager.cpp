@@ -81,52 +81,6 @@ bool MeshManager::LoadSquare(Direct3D* renderer, const char* identifier)
 	}
 }
 
-bool MeshManager::LoadAbstractArt(Direct3D* renderer, const char* identifier)
-{
-	if (identifier == NULL)
-		return false;
-
-	if (GetMesh(identifier) != NULL)
-		return true;
-
-	Mesh* tempMesh = new Mesh();
-
-	if (tempMesh->CreateAbstractArt(renderer, identifier))
-	{
-		string identifierStr = identifier;
-		m_meshMap[identifierStr] = tempMesh;
-		return true;
-	}
-	else
-	{
-		delete tempMesh;
-		return false;
-	}
-}
-
-bool MeshManager::LoadAbstractArt3D(Direct3D* renderer, const char* identifier)
-{
-	if (identifier == NULL)
-		return false;
-
-	if (GetMesh(identifier) != NULL)
-		return true;
-
-	Mesh* tempMesh = new Mesh();
-
-	if (tempMesh->CreateAbstractArt3D(renderer, identifier))
-	{
-		string identifierStr = identifier;
-		m_meshMap[identifierStr] = tempMesh;
-		return true;
-	}
-	else
-	{
-		delete tempMesh;
-		return false;
-	}
-}
-
 Mesh* MeshManager::GetMesh(const char* filename)
 {
 	string filenameStr = filename;
@@ -140,7 +94,6 @@ Mesh* MeshManager::GetMesh(const char* filename)
 
 	return NULL;
 }
-
 
 void MeshManager::ReleaseMesh(Mesh* mesh)
 {

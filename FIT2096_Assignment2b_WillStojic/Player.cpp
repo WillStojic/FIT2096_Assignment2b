@@ -1,29 +1,11 @@
 #include "Player.h"
 #include "MathsHelper.h"
 
-Player::Player()
-{
-	m_input = NULL;
-	m_moveSpeed = 5.0f;
-	m_currentBoard = NULL;
-	m_health = 100.0f;
-	m_gems = 0;
-	m_ammo = 8;
-	m_score = 0;
-	m_monstersDefeated = 0;
-}
-
-Player::Player(Mesh * mesh, Shader * shader)
-{
-	m_input = NULL;
-}
-
-Player::Player(Mesh* mesh, Shader* shader, Texture* texture, InputController* input, GameBoard* board)
-	: GameObject(mesh, shader, texture, Vector3::Zero)
+Player::Player(InputController* input, FirstPersonCamera* camera)
+	: PhysicsObject(Vector3::Zero)
 {
 	m_input = input;
-	m_moveSpeed = 5.0f;
-	m_currentBoard = board;
+	m_FPScamera = camera;
 	m_health = 100.0f;
 	// The player is much stronger than any monster on the board
 	m_skill = 20;
@@ -32,101 +14,84 @@ Player::Player(Mesh* mesh, Shader* shader, Texture* texture, InputController* in
 	m_score = 0;
 	m_monstersDefeated = 0;
 
-	TeleportToTileOfType(TileType::INVALID);
+	m_moveSpeed = 0.5f;
+
+	//player has no mesh, therefore bounds are manually set
+	m_boundingBox = CBoundingBox(m_position + Vector3(-0.5f, 0.0f, -0.5f), m_position + Vector3(0.5f, 1.6f, 0.5f));
 }
 
 Player::~Player() {}
 
 void Player::Update(float timestep)
 {
-	// Constantly step towards target position
-	// Could add a distance check here, however seeing we only have one player we'll be fine
 	m_position = Vector3::Lerp(m_position, m_targetPosition, timestep * m_moveSpeed);
 
-	// We need to identify the frame input was received so we can perform common logic
-	// outside of the GetKeyDown IF statements below.
+	//attaches camera to player
+	m_FPScamera->SetPosition(m_position + Vector3(0.0f, 1.6f, 0.0f));
 
-	FinishTurn();
 
-}
+	//save on function calls by intialising local variables
+	float m_heading = m_FPScamera->GetHeading();
+	float m_pitch = m_FPScamera->GetPitch();
 
-void Player::FinishTurn()
-{
-	// React to tile we're standing on
-	ReactToTile();
+	// Accumulate change in mouse position 
+	m_heading += m_input->GetMouseDeltaX() * m_FPScamera->GetRotationSpeed() * timestep;
+	m_pitch += m_input->GetMouseDeltaY() * m_FPScamera->GetRotationSpeed() * timestep;
 
-	// Show health visually as scale of player mesh
-	SetUniformScale(m_health / 100.0f);
-}
+	// Limit how far the player can look down and up
+	m_pitch = MathsHelper::Clamp(m_pitch, ToRadians(-80.0f), ToRadians(80.0f));
 
-bool Player::CanMoveHere(Vector3 target)
-{
-	// Asks the GameBoard for the type of the target tile
-	// We can't step onto a wall or a disabled tile
+	// Wrap heading and pitch up in a matrix so we can transform our look at vector
+	// Heading is controlled by MouseX (horizontal movement) but it is a rotation around Y
+	// Pitch  controlled by MouseY (vertical movement) but it is a rotation around X
+	Matrix heading = Matrix::CreateRotationY(m_heading);
+	Matrix pitch = Matrix::CreateRotationX(m_pitch);
 
-	TileType targetTileType = m_currentBoard->GetTileTypeForPosition(target.x, target.z);
+	// Transform a world right vector from world space into local space
+	Vector3 localRight = Vector3::TransformNormal(Vector3(1, 0, 0), heading);
 
-	return targetTileType != TileType::WALL;
-}
+	// Essentially our local forward vector but always parallel with the ground
+	// Remember a cross product gives us a vector perpendicular to the two input vectors
+	Vector3 localForwardXZ = localRight.Cross(Vector3(0, 1, 0));
 
-void Player::ReactToTile()
-{
-	TileType targetTileType = m_currentBoard->GetTileTypeForPosition(m_targetPosition.x, m_targetPosition.z);
+	// We're going to need this a lot. Store it locally here to save on our function calls 
+	Vector3 currentPos = m_FPScamera->GetPosition();
 
-	switch (targetTileType)
+	//moves the player's position
+	if (m_input->GetKeyHold('W'))
 	{
-	case TileType::HEALTH:
-		m_health += 5;
-		m_currentBoard->RemoveTile(m_targetPosition);		//removes the tile from the board
-		break;
-	case TileType::GEM:
-		m_gems += 1;
-		m_currentBoard->RemoveTile(m_targetPosition);
-		break;
-	case TileType::AMMO:
-		m_ammo += 1;
-		m_currentBoard->RemoveTile(m_targetPosition);
-		break;
-	case TileType::MONSTER:
+		m_targetPosition += localForwardXZ * m_moveSpeed;
+	}
+	if (m_input->GetKeyHold('S'))
 	{
-		//gets monster on tile, and performs a battle function
-
-		break;
+		m_targetPosition -= localForwardXZ * m_moveSpeed;
 	}
-	default:
-		break;
-	}
-}
-
-void Player::MonsterDefeated()
-{
-	//if the player won the overall battle, increment our score and monsters, but decrease ammo by 1
-	//SetScore(GetScore() + m_currentBoard->GetMonster(m_targetPosition)->GetSkill());
-	SetNumberofMonstersDefeated(GetNumberOfMonstersDefeated() + 1);
-
-	SetAmmo(GetAmmo() - 1);
-	//ensure ammo doesn't enter the negatives
-	if (GetAmmo() < 0)
-		SetAmmo(0);
-
-	//delete monster and their associated tile
-	GetCurrentBoard()->RemoveTile(m_targetPosition);
-	//GetCurrentBoard()->RemoveMonster(m_targetPosition);
-}
-
-void Player::TeleportToTileOfType(TileType type)
-{
-	Tile* destinationTile = m_currentBoard->GetRandomTileOfType(type);
-
-	if (destinationTile)
+	if (m_input->GetKeyHold('A'))
 	{
-		// We need to set both the current position and the target
-		// The only time the player remains still is when these two positions match
-		m_targetPosition = destinationTile->GetPosition();
-		m_position = destinationTile->GetPosition();
-
-		// Tiles start up in the sky and fall down. Ensure player starts on the ground.
-		m_targetPosition.y = 0.0f;
-		m_position.y = 0.0f;
+		m_targetPosition -= localRight * m_moveSpeed;
 	}
+	if (m_input->GetKeyHold('D'))
+	{
+		m_targetPosition += localRight * m_moveSpeed;
+	}
+
+	PhysicsObject::Update(timestep);
+
+	// Combine pitch and heading into one matrix for convenience
+	Matrix lookAtRotation = pitch * heading;
+
+	// Transform a world forward vector into local space (take pitch and heading into account)
+	Vector3 lookAt = Vector3::TransformNormal(Vector3(0, 0, 1), lookAtRotation);
+
+	// At this point, our look-at vector is still relative to the origin
+	// Add our position to it so it originates from the camera and points slightly in front of it
+	// Remember the look-at vector needs to describe a point in the world relative to the origin
+	lookAt += currentPos;
+	m_rotY = lookAt.y;
+
+	// Use parent's mutators so isDirty flags get flipped
+	m_FPScamera->SetLookAt(lookAt);
+
+	m_boundingBox.SetMin(m_position + Vector3(-0.5f, 0.0f, -0.5f));
+	m_boundingBox.SetMax(m_position + Vector3(0.5f, 1.6f, 0.5f));
 }

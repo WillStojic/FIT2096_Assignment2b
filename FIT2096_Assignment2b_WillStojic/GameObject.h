@@ -3,6 +3,7 @@
 
 #include "Direct3D.h"
 #include "Mesh.h"
+#include "Collisions.h"
 
 class GameObject
 {
@@ -21,6 +22,8 @@ protected:
 	float m_health;
 	int m_skill;
 	int m_ammo;
+
+	CBoundingBox m_boundingBox;
 public:
 	GameObject();
 	GameObject(Mesh* mesh, Shader* shader);

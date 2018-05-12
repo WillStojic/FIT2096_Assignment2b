@@ -132,6 +132,12 @@ void Window::Start()
 	//This struct stores the received message
 	MSG msg;
 
+	// We start off with 0 in our bank. See below for an explanation.
+	float timeBank = 0.0f;
+
+	// Our desired timestep - 60 frames a second.
+	const float timeStep = 1.0f / 60.0f;
+
 	bool running = true;
 
 	while (running)
@@ -154,15 +160,38 @@ void Window::Start()
 			LARGE_INTEGER currentCount;
 			QueryPerformanceCounter(&currentCount);
 
-			//The calculation of the timestep is difference between the count on this frame and the count on last frame divided by the frequency of the counter
+			//The calculation of the timestep is the difference between the count on this frame and the count on last frame divided by the frequency of the counter
 			//This value is now the number of seconds that have passed since the last frame to this frame, hopefully it is a fractional number, otherwise we are running very slow!
-			float timestep = (currentCount.QuadPart - m_lastCount.QuadPart) / (float)m_counterFrequency.QuadPart;
+			float timeElapsed = (currentCount.QuadPart - m_lastCount.QuadPart) / (float)m_counterFrequency.QuadPart;
 
-			m_game->Update(timestep);	//We tell the game to update, and give it the timestep so it can move things around correctly
+			// Notice that, up until this point, we've been doing everything exactly the same as we did
+			// in the variable time step version.
 
-			m_game->Render();			//After everything is updated we can then render a frame
+			// Here, we need to do something different. It basically boils down to:
+			// 1) Decoupling Update and Render,
+			// 2) Treating time more as a 'currency'. i.e. "Do I have enough time banked up to Update my game?"
 
-										//We set the last count value to the current count so that next frame we still have the count from this frame
+			timeBank += timeElapsed;
+
+			int framesSimulated = 0;
+
+			// If we have time banked up, simulate a frame (call Update). 
+			// Do this by looping fixed time increments (1/60) and passing this for update.
+			// Depending on the timeBank, it's possible we will perform multiple updates
+			// before a render pass takes place.
+			while (timeBank > timeStep)
+			{
+				framesSimulated++;
+				m_game->Update(timeStep);
+
+				timeBank -= timeStep;
+			}
+
+			if (framesSimulated > 0)
+			{
+				m_game->Render();
+			}
+
 			m_lastCount = currentCount;
 
 		}
