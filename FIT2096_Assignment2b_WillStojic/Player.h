@@ -14,6 +14,7 @@
 #include "MeshManager.h"
 #include "TextureManager.h"
 #include "BulletFactory.h"
+#include "Items.h"
 
 class Player : public PhysicsObject
 {
@@ -40,6 +41,7 @@ public:
 	void Update(float timestep, FirstPersonCamera* &camera, BulletFactory* &bulletFactory);
 
 	void TakeDamage(int damage) { m_health -= damage; }
+	void PickupItem(ItemType itemType);
 
 	// Game will use these to output info to the player
 	int GetNumberOfMonstersDefeated() { return m_monstersDefeated; }

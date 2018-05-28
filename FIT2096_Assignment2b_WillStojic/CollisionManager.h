@@ -5,7 +5,7 @@
 #include "Collisions.h"
 #include "Player.h"
 #include "BulletFactory.h"
-#include "StaticObject.h"
+#include "GameBoard.h"
 
 #define MAX_ALLOWED_COLLISIONS 2048
 
@@ -14,7 +14,7 @@ class CollisionManager
 private:
 	Player* m_Player;
 	BulletFactory* m_BulletFactory;
-
+	GameBoard* m_gameBoard;
 
 	GameObject* m_currentCollisions[MAX_ALLOWED_COLLISIONS];
 
@@ -31,9 +31,11 @@ private:
 
 	// Collision check helpers
 	void BulletImpact();
+	void ItemCollect();
+	void TeleportTile();
 
 public:
-	CollisionManager(Player* &player, BulletFactory* &bulletFactory);
+	CollisionManager(Player* &player, BulletFactory* &bulletFactory, GameBoard* &gameBoard);
 	void CheckCollisions();
 
 };

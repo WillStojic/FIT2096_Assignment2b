@@ -18,6 +18,7 @@
 #include "CollisionManager.h"
 #include "GameObject.h"
 #include "StaticObject.h"
+#include "GameBoard.h"
 #include "Player.h"
 #include "BulletFactory.h"
 #include <vector>
@@ -44,6 +45,7 @@ private:
 	SpriteFont* m_arialFont18;
 
 	// Our game data.
+	GameBoard* m_gameBoard;
 	Player* m_player;
 	StaticObject* m_ground;
 	BulletFactory* m_bulletFactory;

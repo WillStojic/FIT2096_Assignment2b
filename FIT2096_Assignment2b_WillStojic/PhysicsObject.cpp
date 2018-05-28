@@ -57,8 +57,20 @@ void PhysicsObject::Update(float timestep)
 	m_positionDelta += m_gravity;
 	m_position += m_positionDelta;
 
+
+	//keeps player above ground
 	if (m_position.y < 0)
 		m_position.y = 0;
+
+	//keeps player within bounds
+	if (m_position.x > 48)
+		m_position.x = 48;
+	if (m_position.x < 1)
+		m_position.x = 1;
+	if (m_position.z > 48)
+		m_position.z = 48;
+	if (m_position.z < 1)
+		m_position.z = 1;
 
 	// Reset acceleration each frame so it doesn't accumulate
 	// beyond a single frame. Only velocity lasts between frames

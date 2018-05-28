@@ -1,11 +1,15 @@
 #include "CollisionManager.h"
 #include "Bullet.h"
+#include "Items.h"
+#include "Tile.h"
 #include "MathsHelper.h"
+#include "PhysicsObject.h"
 
-CollisionManager::CollisionManager(Player* &player, BulletFactory* &bulletFactory)
+CollisionManager::CollisionManager(Player* &player, BulletFactory* &bulletFactory, GameBoard* &gameBoard)
 {
 	m_Player = player;
 	m_BulletFactory = bulletFactory;
+	m_gameBoard = gameBoard;
 
 	// Clear our arrays to 0 (NULL)
 	memset(m_currentCollisions, 0, sizeof(m_currentCollisions));
@@ -17,6 +21,8 @@ CollisionManager::CollisionManager(Player* &player, BulletFactory* &bulletFactor
 void CollisionManager::CheckCollisions()
 {
 	BulletImpact();
+	ItemCollect();
+	TeleportTile();
 
 	// Move all current collisions into previous
 	memcpy(m_previousCollisions, m_currentCollisions, sizeof(m_currentCollisions));
@@ -59,9 +65,9 @@ void CollisionManager::AddCollision(GameObject* first, GameObject* second)
 
 void CollisionManager::BulletImpact()
 {
-	for (unsigned int i = 0; i < m_BulletFactory->m_bullets.size(); ++i)
+	for (unsigned int i = 0; i < m_BulletFactory->GetBulletVector().size(); ++i)
 	{
-		Bullet* bullet = m_BulletFactory->m_bullets[i];
+		Bullet* bullet = m_BulletFactory->GetBulletVector().at(i);
 
 		CBoundingSphere* bulletBounds = bullet->GetBoundingSphere();
 		CBoundingBox* playerBounds = m_Player->GetBoundingBox();
@@ -95,3 +101,91 @@ void CollisionManager::BulletImpact()
 		}
 	}
 }
+
+void CollisionManager::ItemCollect()
+{
+	for (unsigned int i = 0; i < m_gameBoard->GetItemVector().size(); ++i)
+	{
+		Items* item = m_gameBoard->GetItemVector().at(i);
+
+		CBoundingSphere* itemBounds = item->GetBoundingSphere();
+		CBoundingBox* playerBounds = m_Player->GetBoundingBox();
+
+		bool isColliding = CheckCollision(*itemBounds, *playerBounds);
+
+		bool wasColliding = ArrayContainsCollision(m_previousCollisions, item, m_Player);
+
+		if (isColliding)
+		{
+			AddCollision(item, m_Player);
+
+			if (wasColliding)
+			{
+				//collision stay
+
+			}
+			else
+			{
+				//collision enter
+				m_Player->PickupItem(item->GetType());
+				delete item;
+				m_gameBoard->removeItem(i);
+			}
+		}
+		else
+		{
+			if (wasColliding)
+			{
+				//collision exit
+
+			}
+		}
+	}
+}
+
+void CollisionManager::TeleportTile()
+{
+	for (unsigned int i = 0; i < m_gameBoard->GetBoardSize(); ++i)
+	{
+		for (unsigned int j = 0; j < m_gameBoard->GetBoardSize(); ++j)
+		{
+			Tile* tile = m_gameBoard->GetTileType(i, j);
+
+			if (tile->GetType() == TileType::TELEPORT)
+			{
+
+				CBoundingBox* tileBounds = tile->GetBoundingBox();
+				CBoundingBox* playerBounds = m_Player->GetBoundingBox();
+
+				bool isColliding = CheckCollision(*tileBounds, *playerBounds);
+
+				bool wasColliding = ArrayContainsCollision(m_previousCollisions, tile, m_Player);
+
+				if (isColliding)
+				{
+					AddCollision(tile, m_Player);
+
+					if (wasColliding)
+					{
+						//collision stay
+
+					}
+					else
+					{
+						//collision enter
+						m_Player->SetPosition(m_gameBoard->GetRandomTileOfType(TileType::TELEPORT)->GetPosition());
+					}
+				}
+				else
+				{
+					if (wasColliding)
+					{
+						//collision exit
+
+					}
+				}
+			}
+		}
+	}
+}
+

@@ -5,10 +5,10 @@ Bullet::Bullet(MeshManager* &meshManager, TextureManager* &textureManager, Shade
 				Vector3 &position, Vector3 &targetPosition)
 {
 	m_mesh = meshManager->GetMesh("Assets/Meshes/bullet.obj");
-	m_texture = textureManager->GetTexture("Assets/Textures/bullet.png");
+	m_texture = textureManager->GetTexture("Assets/Textures/gradient_redDarker.png");
 	m_shader = shader;
 
-	m_moveSpeed = 0.1f;
+	m_moveSpeed = 0.7f;
 
 	m_position = position;
 	m_targetPosition = targetPosition;

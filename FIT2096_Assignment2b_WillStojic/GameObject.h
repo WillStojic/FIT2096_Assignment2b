@@ -66,6 +66,7 @@ public:
 	void SetMesh(Mesh* mesh) { m_mesh = mesh; }
 	void SetTexture(Texture* texture) { m_texture = texture; }
 	void SetShader(Shader* shader) { m_shader = shader; }
+	void SetBoundingBox(CBoundingBox* bounds) { m_boundingBox = bounds; }
 
 	//game functions
 	float GetHealth() { return m_health; }

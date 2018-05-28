@@ -2,7 +2,7 @@
 #include "MathsHelper.h"
 
 Player::Player(InputController* input)
-	: PhysicsObject(Vector3::Zero)
+	: PhysicsObject(Vector3(25, 0, 25))
 {
 	m_input = input;
 	m_health = 100.0f;
@@ -92,8 +92,6 @@ void Player::Update(float timestep, FirstPersonCamera* &camera, BulletFactory* &
 
 	m_targetPosition = translation;
 
-	PhysicsObject::Update(timestep);
-
 	// Combine pitch and heading into one matrix for convenience
 	Matrix lookAtRotation = pitch * heading;
 
@@ -102,12 +100,16 @@ void Player::Update(float timestep, FirstPersonCamera* &camera, BulletFactory* &
 
 	++shootTicker;
 
-	if (m_input->GetMouseDown(0) && shootTicker > 15)
+	if (m_input->GetMouseDown(0) && shootTicker > 15 && m_ammo != 0)
 	{
 		Vector3 aim = lookAt * 50;
 		aim += currentPos;
 		Vector3 offset = Vector3::TransformNormal(Vector3(0, 0, 0.5), lookAtRotation) + currentPos;
 		bulletFactory->InitialiseBullet(offset, aim);
+
+		--m_ammo;
+		if (m_ammo < 0)
+			m_ammo = 0;
 
 		shootTicker = 0;
 	}
@@ -126,4 +128,16 @@ void Player::Update(float timestep, FirstPersonCamera* &camera, BulletFactory* &
 
 	m_boundingBox->SetMin(m_position + Vector3(-0.05f, 1.1f, -0.05f));
 	m_boundingBox->SetMax(m_position + Vector3(0.05f, 1.8f, 0.05f));
+
+	PhysicsObject::Update(timestep);
+}
+
+void Player::PickupItem(ItemType itemType)
+{
+	if (itemType == ItemType::HEALTH)
+		m_health += 10;
+	else if (itemType == ItemType::AMMO)
+		m_ammo += 4;
+	else if (itemType == ItemType::GEM)
+		++m_gems;
 }

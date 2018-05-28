@@ -21,7 +21,6 @@ protected:
 	void ApplyFriction(float strength);
 	void Jump(float strength);
 
-
 public:
 	PhysicsObject(Vector3 position);
 	PhysicsObject(Mesh* mesh, Shader* shader, Texture* texture, Vector3 position);

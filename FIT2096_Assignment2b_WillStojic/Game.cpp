@@ -21,6 +21,9 @@ Game::Game()
 	m_diffuseTexturedShader = NULL;
 	m_diffuseTexturedFogShader = NULL;
 	m_ground = NULL;
+	m_bulletFactory = NULL;
+	m_player = NULL;
+	m_gameBoard = NULL;
 
 	m_spriteBatch = NULL;
 	m_arialFont12 = NULL;
@@ -47,13 +50,14 @@ bool Game::Initialise(Direct3D* renderer, InputController* input)
 		return false;
 
 	m_player = new Player(m_input);
-	m_bulletFactory = new BulletFactory(m_meshManager, m_textureManager, m_diffuseTexturedShader);
-	m_collisionManager = new CollisionManager(m_player, m_bulletFactory);
+	m_bulletFactory = new BulletFactory(m_meshManager, m_textureManager, m_diffuseTexturedFogShader);
 
 	LoadFonts();
 	InitUI();
 	InitGameWorld();
 	RefreshUI();
+
+	m_collisionManager = new CollisionManager(m_player, m_bulletFactory, m_gameBoard);
 
 	return true;
 }
@@ -91,6 +95,12 @@ bool Game::LoadMeshes()
 	if (!m_meshManager->Load(m_renderer, "Assets/Meshes/bullet.obj"))
 		return false;
 
+	if (!m_meshManager->Load(m_renderer, "Assets/Meshes/floor_tile.obj"))
+		return false;
+
+	if (!m_meshManager->Load(m_renderer, "Assets/Meshes/wall_tile.obj"))
+		return false;
+
 	return true;
 }
 
@@ -124,6 +134,27 @@ bool Game::LoadTextures()
 		return false;
 
 	if (!m_textureManager->Load(m_renderer, "Assets/Textures/bullet.png"))
+		return false;
+
+	if (!m_textureManager->Load(m_renderer, "Assets/Textures/tile_blue.png"))
+		return false;
+
+	if (!m_textureManager->Load(m_renderer, "Assets/Textures/tile_disabled.png"))
+		return false;
+
+	if (!m_textureManager->Load(m_renderer, "Assets/Textures/tile_green.png"))
+		return false;
+
+	if (!m_textureManager->Load(m_renderer, "Assets/Textures/tile_orange.png"))
+		return false;
+
+	if (!m_textureManager->Load(m_renderer, "Assets/Textures/tile_purple.png"))
+		return false;
+
+	if (!m_textureManager->Load(m_renderer, "Assets/Textures/tile_red.png"))
+		return false;
+
+	if (!m_textureManager->Load(m_renderer, "Assets/Textures/tile_white.png"))
 		return false;
 
 	return true;
@@ -169,7 +200,10 @@ void Game::InitGameWorld()
 	//creats ground mesh
 	m_ground = new StaticObject(m_meshManager->GetMesh("Assets/Meshes/ground.obj"),
 											m_diffuseTexturedShader,
-											m_textureManager->GetTexture("Assets/Textures/ground.png"));
+											m_textureManager->GetTexture("Assets/Textures/ground.png"),
+											Vector3(0, -0.5, 0));
+
+	m_gameBoard = new GameBoard(m_meshManager, m_textureManager, m_diffuseTexturedShader);
 
 }
 
@@ -179,6 +213,8 @@ void Game::Update(float timestep)
 	// Our only job out here is to Update the board and player, and check if the game is over.
 
 	m_input->BeginUpdate();
+
+	m_gameBoard->Update(timestep);
 	
 	m_player->Update(timestep, m_currentCam, m_bulletFactory);
 
@@ -205,6 +241,8 @@ void Game::Render()
 	m_renderer->BeginScene(0.8f, 1.0f, 0.9f, 1.0f);
 
 	m_ground->Render(m_renderer, m_currentCam);
+
+	m_gameBoard->Render(m_renderer, m_currentCam);
 
 	m_player->Render(m_renderer, m_currentCam);
 	
@@ -268,6 +306,12 @@ void Game::DrawUI()
 
 void Game::Shutdown()
 {
+	if (m_gameBoard)
+	{
+		delete m_gameBoard;
+		m_gameBoard = NULL;
+	}
+
 	if (m_player)
 	{
 		delete m_player;
