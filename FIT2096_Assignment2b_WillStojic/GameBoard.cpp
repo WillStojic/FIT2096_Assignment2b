@@ -9,17 +9,33 @@ GameBoard::GameBoard()
 	m_tileShader = NULL;
 }
 
-GameBoard::GameBoard(MeshManager* meshManager, TextureManager* textureManager, Shader* tileShader)
+GameBoard::GameBoard(MeshManager* &meshManager, TextureManager* &textureManager, Shader* &tileShader, Player* &player, BulletFactory* &bulletFactory)
 {
 	m_meshManager = meshManager;
 	m_textureManager = textureManager;
 	m_tileShader = tileShader;
+	m_player = player;
+	m_bulletFactory = bulletFactory;
+
+	EnemiesDefeated = false;
 
 	Generate();
 }
 
 GameBoard::~GameBoard()
 {
+	for (unsigned int i = 0; i < m_monsters.size(); i++)
+	{
+		delete m_monsters[i];
+		m_monsters[i] = NULL;
+	}
+
+	for (unsigned int i = 0; i < m_items.size(); i++)
+	{
+		delete m_items[i];
+		m_items[i] = NULL;
+	}
+
 	for (unsigned int z = 0; z < BOARD_HEIGHT; z++)
 	{
 		for (unsigned int x = 0; x < BOARD_WIDTH; x++)
@@ -32,23 +48,22 @@ GameBoard::~GameBoard()
 
 void GameBoard::Update(float timestep)
 {
-	// Update all the tiles we manage.
+	//tiles don't update as they are static objects
 
-	/*
-	for (unsigned int z = 0; z < BOARD_HEIGHT; z++)
-	{
-		for (unsigned int x = 0; x < BOARD_WIDTH; x++)
-		{
-			m_tiles[z][x]->Update(timestep);
-		}
-	}
-	*/
-
-	//update items
+	//update items, due their animations
 	for (unsigned int i = 0; i < m_items.size(); i++)
 	{
 		m_items[i]->Update(timestep);
 	}
+
+	//update monsters
+	for (unsigned int i = 0; i < m_monsters.size(); i++)
+	{
+		m_monsters[i]->Update(timestep, m_player, m_bulletFactory);
+	}
+	
+	if (m_monsters.size() <= 0)
+		EnemiesDefeated = true;
 }
 
 void GameBoard::Render(Direct3D* renderer, Camera* camera)
@@ -63,9 +78,16 @@ void GameBoard::Render(Direct3D* renderer, Camera* camera)
 		}
 	}
 
+	//render items
 	for (unsigned int i = 0; i < m_items.size(); i++)
 	{
 		m_items[i]->Render(renderer, camera);
+	}
+
+	//render monsters
+	for (unsigned int i = 0; i < m_monsters.size(); i++)
+	{
+		m_monsters[i]->Render(renderer, camera);
 	}
 }
 
@@ -113,6 +135,7 @@ void GameBoard::Generate()
 	}
 
 	AddWalls();
+	SpawnMonsters();
 }
 
 void GameBoard::AddWalls()
@@ -156,9 +179,76 @@ void GameBoard::AddWalls()
 	}
 }
 
+void GameBoard::SpawnMonsters()
+{
+	//ensures only one monster of each type is spawned.
+	bool chaserSpawned = false;
+	bool RetreaterSpawned = false;
+	bool RandomSpawned = false;
+	bool HeadOffSpawned = false;
+	bool StillSpawned = false;
+
+	while (!chaserSpawned || !RetreaterSpawned || !RandomSpawned || !HeadOffSpawned || !StillSpawned)
+	{
+		int randX = MathsHelper::RandomRange(1, 48);
+		int randZ = MathsHelper::RandomRange(1, 48);
+
+		if (!chaserSpawned)
+		{
+			m_monsters.push_back(new Monster(m_meshManager->GetMesh("Assets/Meshes/enemy.obj"),
+												m_tileShader,
+												m_textureManager,
+												Vector3(randX, 0, randZ),
+												MonsterType::CHASER));
+			chaserSpawned = true;
+		}
+		else if (!RetreaterSpawned)
+		{
+			m_monsters.push_back(new Monster(m_meshManager->GetMesh("Assets/Meshes/enemy.obj"),
+												m_tileShader,
+												m_textureManager,
+												Vector3(randX, 0, randZ),
+												MonsterType::RETREATER));
+			RetreaterSpawned = true;
+		}
+		else if (!RandomSpawned)
+		{
+			m_monsters.push_back(new Monster(m_meshManager->GetMesh("Assets/Meshes/enemy.obj"),
+												m_tileShader,
+												m_textureManager,
+												Vector3(randX, 0, randZ),
+												MonsterType::RANDOM));
+			RandomSpawned = true;
+		}
+		else if (!HeadOffSpawned)
+		{
+			m_monsters.push_back(new Monster(m_meshManager->GetMesh("Assets/Meshes/enemy.obj"),
+												m_tileShader,
+												m_textureManager,
+												Vector3(randX, 0, randZ),
+												MonsterType::HEADOFF));
+			HeadOffSpawned = true;
+		}
+		else if (!StillSpawned)
+		{
+			m_monsters.push_back(new Monster(m_meshManager->GetMesh("Assets/Meshes/enemy.obj"),
+												m_tileShader,
+												m_textureManager,
+												Vector3(randX, 0, randZ),
+												MonsterType::STILL));
+			StillSpawned = true;
+		}
+	}
+}
+
 void GameBoard::removeItem(int element)
 {
 	m_items.erase(m_items.begin() + element);
+}
+
+void GameBoard::removeMonster(int element)
+{
+	m_monsters.erase(m_monsters.begin() + element);
 }
 
 void GameBoard::DeactivateTile(int x, int z)

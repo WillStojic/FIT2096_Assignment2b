@@ -1,5 +1,6 @@
 #include "CollisionManager.h"
 #include "Bullet.h"
+#include "Monster.h"
 #include "Items.h"
 #include "Tile.h"
 #include "MathsHelper.h"
@@ -20,7 +21,10 @@ CollisionManager::CollisionManager(Player* &player, BulletFactory* &bulletFactor
 
 void CollisionManager::CheckCollisions()
 {
-	BulletImpact();
+	BulletImpactPlayer();
+	BulletImpactEnemy();
+	EnemyToPlayer();
+	PlayerToStillSphere();
 	ItemCollect();
 	TeleportTile();
 
@@ -63,22 +67,121 @@ void CollisionManager::AddCollision(GameObject* first, GameObject* second)
 	m_nextCurrentCollisionSlot += 2;
 }
 
-void CollisionManager::BulletImpact()
+void CollisionManager::BulletImpactPlayer()
 {
 	for (unsigned int i = 0; i < m_BulletFactory->GetBulletVector().size(); ++i)
 	{
 		Bullet* bullet = m_BulletFactory->GetBulletVector().at(i);
 
-		CBoundingSphere* bulletBounds = bullet->GetBoundingSphere();
+		if (bullet->GetType() == BulletType::MONSTER)
+		{
+			CBoundingSphere* bulletBounds = bullet->GetBoundingSphere();
+			CBoundingBox* playerBounds = m_Player->GetBoundingBox();
+
+			bool isColliding = CheckCollision(*bulletBounds, *playerBounds);
+
+			bool wasColliding = ArrayContainsCollision(m_previousCollisions, bullet, m_Player);
+
+			if (isColliding)
+			{
+				AddCollision(bullet, m_Player);
+
+				if (wasColliding)
+				{
+					//collision stay
+
+				}
+				else
+				{
+					//collision enter
+					m_Player->TakeDamage(MathsHelper::RandomRange(20, 35));
+
+				}
+			}
+			else
+			{
+				if (wasColliding)
+				{
+					//collision exit
+
+				}
+			}
+		}
+	}
+}
+
+void CollisionManager::BulletImpactEnemy()
+{
+	for (unsigned int i = 0; i < m_BulletFactory->GetBulletVector().size(); ++i)
+	{
+		for (unsigned int j = 0; j < m_gameBoard->GetMonsterVector().size(); ++j)
+		{
+			Bullet* bullet = m_BulletFactory->GetBulletVector().at(i);
+
+			if (bullet->GetType() == BulletType::PLAYER)
+			{
+				Monster* monster = m_gameBoard->GetMonsterVector().at(j);
+
+				CBoundingSphere* bulletBounds = bullet->GetBoundingSphere();
+				CBoundingBox* enemyBounds = monster->GetBoundingBox();
+
+				bool isColliding = CheckCollision(*bulletBounds, *enemyBounds);
+
+				bool wasColliding = ArrayContainsCollision(m_previousCollisions, bullet, monster);
+
+				if (isColliding)
+				{
+					AddCollision(bullet, monster);
+
+					if (wasColliding)
+					{
+						//collision stay
+
+					}
+					else
+					{
+						//collision enter
+						monster->TakeDamage(MathsHelper::RandomRange(30, 50));
+
+						//deletes monster if dead and increases player's score
+						if (monster->GetHealth() <= 0)
+						{
+							m_gameBoard->removeMonster(j);
+							delete monster;
+							m_Player->SetScore(m_Player->GetScore() + 100);
+							m_Player->IncrementNumberofMonstersDefeated();
+						}
+					}
+				}
+				else
+				{
+					if (wasColliding)
+					{
+						//collision exit
+
+					}
+				}
+			}
+		}
+	}
+}
+
+void CollisionManager::EnemyToPlayer()
+{
+	for (unsigned int i = 0; i < m_gameBoard->GetMonsterVector().size(); ++i)
+	{
+		Monster* monster = m_gameBoard->GetMonsterVector().at(i);
+
+		CBoundingBox* enemyBounds = monster->GetBoundingBox();
 		CBoundingBox* playerBounds = m_Player->GetBoundingBox();
 
-		bool isColliding = CheckCollision(*bulletBounds, *playerBounds);
+		bool isColliding = CheckCollision(*enemyBounds, *playerBounds);
 
-		bool wasColliding = ArrayContainsCollision(m_previousCollisions, bullet, m_Player);
+		bool wasColliding = ArrayContainsCollision(m_previousCollisions, monster, m_Player);
 
 		if (isColliding)
 		{
-			AddCollision(bullet, m_Player);
+			AddCollision(monster, m_Player);
 
 			if (wasColliding)
 			{
@@ -88,7 +191,7 @@ void CollisionManager::BulletImpact()
 			else
 			{
 				//collision enter
-				m_Player->TakeDamage(MathsHelper::RandomRange(10, 30));
+				m_Player->TakeDamage(1000);
 			}
 		}
 		else
@@ -97,6 +200,47 @@ void CollisionManager::BulletImpact()
 			{
 				//collision exit
 
+			}
+		}
+	}
+}
+
+void CollisionManager::PlayerToStillSphere()
+{
+	for (unsigned int i = 0; i < m_gameBoard->GetMonsterVector().size(); ++i)
+	{
+		Monster* monster = m_gameBoard->GetMonsterVector().at(i);
+
+		if (monster->GetType() == MonsterType::STILL)
+		{
+			CBoundingSphere* stillBounds = monster->GetBoundingSphere();
+			CBoundingBox* playerBounds = m_Player->GetBoundingBox();
+
+			bool isColliding = CheckCollision(*stillBounds, *playerBounds);
+
+			bool wasColliding = ArrayContainsCollision(m_previousCollisions, monster, m_Player);
+
+			if (isColliding)
+			{
+				AddCollision(monster, m_Player);
+
+				if (wasColliding)
+				{
+					//collision stay
+					monster->Retreat(m_Player);
+				}
+				else
+				{
+					//collision enter
+				}
+			}
+			else
+			{
+				if (wasColliding)
+				{
+					//collision exit
+
+				}
 			}
 		}
 	}

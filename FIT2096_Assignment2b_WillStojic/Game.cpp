@@ -59,6 +59,8 @@ bool Game::Initialise(Direct3D* renderer, InputController* input)
 
 	m_collisionManager = new CollisionManager(m_player, m_bulletFactory, m_gameBoard);
 
+	GameOver = false;
+
 	return true;
 }
 
@@ -197,13 +199,14 @@ void Game::RefreshUI()
 
 void Game::InitGameWorld()
 {
-	//creats ground mesh
+	//creates ground mesh
 	m_ground = new StaticObject(m_meshManager->GetMesh("Assets/Meshes/ground.obj"),
 											m_diffuseTexturedShader,
 											m_textureManager->GetTexture("Assets/Textures/ground.png"),
 											Vector3(0, -0.5, 0));
 
-	m_gameBoard = new GameBoard(m_meshManager, m_textureManager, m_diffuseTexturedShader);
+	//creates game board
+	m_gameBoard = new GameBoard(m_meshManager, m_textureManager, m_diffuseTexturedShader, m_player, m_bulletFactory);
 
 }
 
@@ -224,12 +227,16 @@ void Game::Update(float timestep)
 
 	RefreshUI();
 
-	CheckGameOver();
+	//ensures the Game Over text doesn't update once it is already game over. This stops you
+	//from being able to raise your score by collecting gems after all the enemies are dead.
+	if (!GameOver)
+		CheckGameOver();
 
 	m_currentCam->Update(timestep);
 
 	m_input->CenterCursorInWindow();
 
+	//lets the user quit the game
 	if (m_input->GetKeyDown(VK_ESCAPE))
 		PostQuitMessage(1);
 
@@ -255,26 +262,28 @@ void Game::Render()
 
 void Game::CheckGameOver()
 {
-	// Checks the three conditions that can end the game and informs the user
-
-	const char* msg = "";
+	// Checks the three conditions that can end the game and creates the string.
+	std::wstringstream ssGameOver;
 
 	if (m_player->GetHealth() <= 0.0f)
 	{
-		msg = "You've run out of health.";
+		ssGameOver << "You are dead.";
+		GameOver = true;
 	}
 
-	if (msg != "")
+	if (m_gameBoard->GetEnemiesDefeated())
 	{
-		std::stringstream ss;
-		ss << msg << " You scored " << m_player->GetScore() << " and defeated " << m_player->GetNumberOfMonstersDefeated() << " monsters.\n";
-		ss << "You collected " << m_player->GetGems() << " gems.";
+		ssGameOver << "You have defeated every enemy!";
+		GameOver = true;
+	}
 
-		// Message Boxes are a blocking call which makes life a little easier here
-		MessageBox(NULL, ss.str().c_str(), "Game Over", MB_OK);
-		PostQuitMessage(0);
+	if (GameOver)
+	{
+		ssGameOver << "\nYou scored " << floorf(m_player->GetScore()) << " and defeated " << floorf(m_player->GetNumberOfMonstersDefeated()) << " monsters.\n";
+		ssGameOver << "You collected " << floorf(m_player->GetGems()) << " gems.";
+		ssGameOver << "\nPress 'Escape' to quit the game.";
 
-		// From now on, an in-game UI should be used instead of a message box
+		m_gameOverText = ssGameOver.str();
 	}
 }
 
@@ -293,13 +302,20 @@ void Game::DrawUI()
 	m_arialFont18->DrawString(m_spriteBatch, m_scoreText.c_str(), Vector2(570, 680), Color(0.0f, 0.0f, 0.0f), 0, Vector2(0, 0));
 	m_arialFont18->DrawString(m_spriteBatch, m_ammoText.c_str(), Vector2(340, 680), Color(0.0f, 0.0f, 0.0f), 0, Vector2(0, 0));
 
-	// Here's how we draw a sprite over our game
+	// draws the health bar, the X scale is directly links with player health, so it will increase or decrease it length
 	m_spriteBatch->Draw(m_healthBar->GetShaderResourceView(), Vector2(300, 640), NULL, Color(1.0f, 1.0f, 1.0f), 0.0f, Vector2(0, 0), 
-						Vector2(m_player->GetHealth()/5, 1));
+						Vector2(m_player->GetHealth()/10, 1));
 
+	//overlay will appear when player is at a third of their health
 	if (m_player->GetHealth() < 34) {
 		m_spriteBatch->Draw(m_hurtOverlay->GetShaderResourceView(), Vector2(0, 0), Color(0.5f, 0.5f, 0.5f));
 	}
+
+	//draws gameover text in either red or green depending on player health
+	if (GameOver && m_player->GetHealth() > 0)
+		m_arialFont18->DrawString(m_spriteBatch, m_gameOverText.c_str(), Vector2(400, 300), Color(0.0f, 1.0f, 0.0f), 0, Vector2(1, 1));
+	else
+		m_arialFont18->DrawString(m_spriteBatch, m_gameOverText.c_str(), Vector2(400, 300), Color(1.0f, 0.0f, 0.2f), 0, Vector2(1, 1));
 
 	m_spriteBatch->End();
 }
@@ -312,16 +328,16 @@ void Game::Shutdown()
 		m_gameBoard = NULL;
 	}
 
-	if (m_player)
-	{
-		delete m_player;
-		m_player = NULL;
-	}
-
 	if (m_bulletFactory)
 	{
 		delete m_bulletFactory;
 		m_bulletFactory = NULL;
+	}
+
+	if (m_player)
+	{
+		delete m_player;
+		m_player = NULL;
 	}
 
 	if (m_ground)

@@ -54,6 +54,7 @@ void PhysicsObject::Update(float timestep)
 	// Velocity trickles down into position
 	m_position += m_velocity;
 
+	//diminishes Y coordinate, so that the Player will fall to the ground over time.
 	m_positionDelta += m_gravity;
 	m_position += m_positionDelta;
 

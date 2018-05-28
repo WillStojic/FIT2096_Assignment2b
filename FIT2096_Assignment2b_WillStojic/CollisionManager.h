@@ -29,8 +29,18 @@ private:
 	// Register that a collision has occurred
 	void AddCollision(GameObject* first, GameObject* second);
 
+
+
 	// Collision check helpers
-	void BulletImpact();
+	//first handle bullet impacts with enemies and players. Only enemy bullets can hurt the player and vice verse.
+	//This stops enemies from accidentally killing eachother.
+	void BulletImpactPlayer();
+	void BulletImpactEnemy();
+	//for when the enemy collides with the player
+	void EnemyToPlayer();
+	//for when the player collides with the "still" enemy's bounding sphere so that it may retreat
+	void PlayerToStillSphere();
+	//handles item collection and teleportation tiles
 	void ItemCollect();
 	void TeleportTile();
 

@@ -20,7 +20,6 @@ protected:
 
 	//game variables
 	float m_health;
-	int m_skill;
 	int m_ammo;
 
 	CBoundingBox* m_boundingBox;
@@ -71,8 +70,6 @@ public:
 	//game functions
 	float GetHealth() { return m_health; }
 	void SetHealth(float health) { m_health = health; }
-
-	int GetSkill() { return m_skill; }
 
 	int GetAmmo() { return m_ammo; }
 	void SetAmmo(int newAmmo) { m_ammo = newAmmo; }

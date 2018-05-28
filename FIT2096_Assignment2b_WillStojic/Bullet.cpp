@@ -2,13 +2,14 @@
 #include <math.h>
 
 Bullet::Bullet(MeshManager* &meshManager, TextureManager* &textureManager, Shader* &shader,
-				Vector3 &position, Vector3 &targetPosition)
+				Vector3 &position, Vector3 &targetPosition, BulletType type)
 {
 	m_mesh = meshManager->GetMesh("Assets/Meshes/bullet.obj");
-	m_texture = textureManager->GetTexture("Assets/Textures/gradient_redDarker.png");
+	m_texture = textureManager->GetTexture("Assets/Textures/gradient_redLighter.png");
 	m_shader = shader;
+	m_type = type;
 
-	m_moveSpeed = 0.7f;
+	m_moveSpeed = 0.3f;
 
 	m_position = position;
 	m_targetPosition = targetPosition;
@@ -27,7 +28,8 @@ void Bullet::Update(float timestep)
 
 	float distanceToTarget = Vector3::Distance(m_position, m_targetPosition);
 
-	if (distanceToTarget <= 0.1f || m_position.y <= 0)
+	//deletes bullet if its out of the play area, otherwise, bounds are updated
+	if (distanceToTarget <= 0.5f || m_position.y <= 0 || m_position.x > 49 || m_position.x < 0 || m_position.z > 49 || m_position.z < 0)
 	{
 		delete this;
 	}

@@ -50,9 +50,12 @@ private:
 	StaticObject* m_ground;
 	BulletFactory* m_bulletFactory;
 
+	bool GameOver;
+
 	std::wstring m_gemsCollectedText;
 	std::wstring m_scoreText;
 	std::wstring m_ammoText;
+	std::wstring m_gameOverText;
 	Texture* m_hurtOverlay;
 	Texture* m_healthBar;
 	

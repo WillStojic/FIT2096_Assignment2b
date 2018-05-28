@@ -30,7 +30,13 @@ private:
 	int m_gems;
 	int m_score;
 	int m_monstersDefeated;
-	int shootTicker;
+
+	//shooting rate
+	int m_shootTicker;
+	int m_fireRate;
+
+	//for the headoffing enemy
+	Vector3 m_headOffPoint;
 
 	float m_moveSpeed;
 	float m_jumpStrength;
@@ -48,9 +54,10 @@ public:
 	int GetScore() { return m_score; }
 	int GetGems() { return m_gems; }
 	float getMoveSpeed() { return m_moveSpeed; }
+	Vector3 GetHeadOff() { return m_headOffPoint; }
 
 	void SetScore(int newScore) { m_score = newScore; }
-	void SetNumberofMonstersDefeated(int monstersDefeated) { m_monstersDefeated = monstersDefeated; }
+	void IncrementNumberofMonstersDefeated() { ++m_monstersDefeated; }
 };
 
 #endif

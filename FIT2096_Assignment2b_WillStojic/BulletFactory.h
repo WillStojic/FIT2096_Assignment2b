@@ -17,11 +17,13 @@ private:
 	std::vector<Bullet*> m_bullets;
 public:
 	BulletFactory(MeshManager* &meshManager, TextureManager* &textureManager, Shader* &shader);
+	~BulletFactory();
 
-	void InitialiseBullet(Vector3 &position, Vector3 &targetPosition);
-	void InitialiseBullet(Vector3 &position, float &XRotation);
+	void InitialiseBullet(Vector3 &position, Vector3 &targetPosition, BulletType type);
 
 	std::vector<Bullet*> GetBulletVector() { return m_bullets; }
+
+	void RemoveBullet(int element);
 
 
 	void Update(float timestep);
