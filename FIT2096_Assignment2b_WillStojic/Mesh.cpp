@@ -32,7 +32,7 @@ Mesh::~Mesh()
 
 bool Mesh::CreateTriangle(Direct3D* renderer, const char* identifier)
 {
-	m_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+	m_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	m_vertexCount = 3;
 	m_indexCount = 3;
 
@@ -60,7 +60,7 @@ bool Mesh::CreateTriangle(Direct3D* renderer, const char* identifier)
 	indices[1] = 1;
 	indices[2] = 2;
 
-	//Now that we have our vertex and index data, we need to copy it into some buffers
+	//Now that we have our vertex and index data, we need to copy it into buffers
 	if (!InitialiseBuffers(renderer, verts, indices))
 	{
 		return false;
@@ -82,8 +82,8 @@ bool Mesh::CreateTriangle(Direct3D* renderer, const char* identifier)
 bool Mesh::CreateSquare(Direct3D* renderer, const char* identifier)
 {
 	m_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	// TODO m_vertexCount = ?
-	// TODO m_indexCount = ?
+	m_vertexCount = 4; // Always 4 unique vertices for a square, regardless of strip or list
+	m_indexCount = 6; // 6 for list, 4 for strip
 
 	Vertex* verts;
 	unsigned long* indices;
@@ -96,11 +96,52 @@ bool Mesh::CreateSquare(Direct3D* renderer, const char* identifier)
 	if (!indices)
 		return false;
 
-	// TODO Define vertices
+	// Define all the vertices we'll need to create a square
 
-	// TODO Define indices
+	// Top Left
+	verts[0].position = Vector3(-1.0f, 1.0f, 0.0f);
+	verts[0].colour = Color(0.0f, 0.6f, 0.7f, 1.0f);
+	verts[0].texCoord = Vector2(0.0f, 0.0f);
 
-	//Now that we have our vertex and index data, we need to copy it into some buffers
+	// Top Right
+	verts[1].position = Vector3(1.0f, 1.0f, 0.0f);
+	verts[1].colour = Color(0.2f, 0.0f, 0.2f, 1.0f);
+	verts[1].texCoord = Vector2(1.0f, 0.0f);
+
+	// Bottom Left
+	verts[2].position = Vector3(-1.0f, -1.0f, 0.0f);
+	verts[2].colour = Color(0.5f, 0.2f, 0.2f, 1.0f);
+	verts[2].texCoord = Vector2(0.0f, 1.0f);
+
+	// Bottom Right
+	verts[3].position = Vector3(1.0f, -1.0f, 0.0f);
+	verts[3].colour = Color(0.8f, 0.7f, 0.7f, 1.0f);
+	verts[3].texCoord = Vector2(1.0f, 1.0f);
+
+	// Triangle List
+	// Form two faces, providing three indices for each
+
+	// If you uncomment this triangle list version, make sure you comment out the strip verison below
+	// and change the topology and index count up the top of this function
+	indices[0] = 0;
+	indices[1] = 1;
+	indices[2] = 2;
+
+	indices[3] = 3;
+	indices[4] = 2;
+	indices[5] = 1;
+
+	// Triangle Strip
+	// Form the first face
+	/*indices[0] = 0;
+	indices[1] = 1;
+	indices[2] = 2;
+
+	// Now this one uses the previous two to form the next face
+	// This means we do have to be mindful of the order for the first face
+	indices[3] = 3;*/
+
+	//Now that we have our vertex and index data, we need to copy it into buffers
 	if (!InitialiseBuffers(renderer, verts, indices))
 	{
 		return false;
@@ -116,53 +157,6 @@ bool Mesh::CreateSquare(Direct3D* renderer, const char* identifier)
 
 	return true;
 
-}
-
-bool Mesh::CreateAbstractArt(Direct3D* renderer, const char* identifier)
-{
-	m_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
-	// TODO m_vertexCount = ?
-	// TODO m_indexCount = ?
-
-	Vertex* verts;
-	unsigned long* indices;
-
-	verts = new Vertex[m_vertexCount];
-	if (!verts)
-		return false;
-
-	indices = new unsigned long[m_indexCount];
-	if (!indices)
-		return false;
-
-	// TODO Define a grid of vertices on the X and Y axis spaced 1 unit apart
-	
-	// TODO Connect vertices in an interesting way by defining indices
-
-	//Now that we have our vertex and index data, we need to copy it into some buffers
-	if (!InitialiseBuffers(renderer, verts, indices))
-	{
-		return false;
-	}
-
-	delete[] verts;
-	verts = 0;
-
-	delete[] indices;
-	indices = 0;
-
-	m_filename = identifier;
-
-	return true;
-
-}
-
-bool Mesh::CreateAbstractArt3D(Direct3D* renderer, const char* identifier)
-{
-	// TODO
-
-	return true;
 }
 
 void Mesh::Render(Direct3D* renderer, Shader* shader, Matrix world, Camera* cam, Texture* texture)
@@ -213,7 +207,7 @@ bool Mesh::InitialiseBuffers(Direct3D* renderer, Vertex* vertexData, unsigned lo
 	vertexBufferDescription.StructureByteStride = 0;
 
 	vertexDataDescription.pSysMem = vertexData;		//The most important piece of information for the data description struct is a pointer 
-	//to the system memory that we are coping into the buffer
+													//to the system memory that we are coping into the buffer
 	vertexDataDescription.SysMemPitch = 0;			//These values allow us to shift and offset the data but we won't be needing that!
 	vertexDataDescription.SysMemSlicePitch = 0;
 
@@ -262,7 +256,7 @@ bool Mesh::Load(Direct3D* renderer, const char* filename)
 	Vector3* normals;	//This array stores the raw normals from the OBJ file
 	Vector2* uvs;		//This array stores the raw texture coords from the OBJ file
 	Face* faces;		//This is an array of Face structs that collects the different 
-	//vert, normal and uv indices into a single place
+						//vert, normal and uv indices into a single place
 
 	int vertexCount = 0;	//We will work out the total number of verts in the file
 	int normalCount = 0;	//The total number of normals	
@@ -276,7 +270,7 @@ bool Mesh::Load(Direct3D* renderer, const char* filename)
 
 	ifstream fileIn;		//OBJ files are just text files so we use a simple input file stream
 
-	//The first read of the file is just to determine the number of verts, normals and uvs in the file
+							//The first read of the file is just to determine the number of verts, normals and uvs in the file
 	fileIn.open(filename);		//Open our OBJ file for reading
 
 	if (!fileIn.good())			//If we can't open it return false
@@ -308,7 +302,7 @@ bool Mesh::Load(Direct3D* renderer, const char* filename)
 	}
 	fileIn.close();		//After reading the counts we then close the file to reset it
 
-	//Now that we know how much memory to allocate we can read the Data from the OBJ file
+						//Now that we know how much memory to allocate we can read the Data from the OBJ file
 	fileIn.open(filename);
 	if (!fileIn.good())
 		return false;
@@ -350,9 +344,9 @@ bool Mesh::Load(Direct3D* renderer, const char* filename)
 		{
 			char junk;		//The face lines are in the format of "index/index/index" which means that the / chars are junk
 
-			//Here you can see us reading three verts worth of information for each face. When we expect a / char we put it into "junk"
-			//(NOTE: OBJ can support faces with more then 3 points, we only read for 3. This means that our models must be made up of
-			//		 only triangles (i.e. they must be "triangulated"))
+							//Here you can see us reading three verts worth of information for each face. When we expect a / char we put it into "junk"
+							//(NOTE: OBJ can support faces with more then 3 points, we only read for 3. This means that our models must be made up of
+							//		 only triangles (i.e. they must be "triangulated"))
 			fileIn >> faces[faceIndex].vert1 >> junk >> faces[faceIndex].uv1 >> junk >> faces[faceIndex].normal1
 				>> faces[faceIndex].vert2 >> junk >> faces[faceIndex].uv2 >> junk >> faces[faceIndex].normal2
 				>> faces[faceIndex].vert3 >> junk >> faces[faceIndex].uv3 >> junk >> faces[faceIndex].normal3;
@@ -366,7 +360,7 @@ bool Mesh::Load(Direct3D* renderer, const char* filename)
 	}
 	fileIn.close();		//Close the file, we are done with our file IO now
 
-	//Each face is made up of three verts so the total number of indices is 3 * the number of faces
+						//Each face is made up of three verts so the total number of indices is 3 * the number of faces
 	int indexCount = faceCount * 3;
 	//We will also allocate the same number of vertices
 	int finalVertexCount = faceCount * 3;
@@ -430,6 +424,36 @@ bool Mesh::Load(Direct3D* renderer, const char* filename)
 	{
 		return false;
 	}
+
+	//Calculate all of our bounding values
+	float minX = 0, minY = 0, minZ = 0;
+	float maxX = 0, maxY = 0, maxZ = 0;
+
+	for (int i = 0; i < finalVertexCount; i++)
+	{
+		Vector3 currentPos = vertexData[i].position;
+
+		if (currentPos.x > maxX)
+			maxX = currentPos.x;
+		else if (currentPos.x < minX)
+			minX = currentPos.x;
+
+		if (currentPos.y > maxY)
+			maxY = currentPos.y;
+		else if (currentPos.y < minY)
+			minY = currentPos.y;
+
+		if (currentPos.z > maxZ)
+			maxZ = currentPos.z;
+		else if (currentPos.z < minZ)
+			minZ = currentPos.z;
+	}
+
+	m_minVector = Vector3(minX, minY, minZ);
+	m_maxVector = Vector3(maxX, maxY, maxZ);
+
+	m_radius = (m_maxVector - m_minVector).Length() / 2.0f; // Radius is half the distance between min and max
+	m_centre = (m_maxVector - m_minVector) / 2;
 
 	//Now that the buffers are created we can delete all of the data we loaded!
 	if (verts)

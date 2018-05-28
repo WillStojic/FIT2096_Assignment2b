@@ -36,7 +36,6 @@ bool Game::Initialise(Direct3D* renderer, InputController* input)
 	m_meshManager = new MeshManager();
 	m_textureManager = new TextureManager();
 	m_currentCam = new FirstPersonCamera(m_input);
-	//m_collisionManager = new CollisionManager(&m_player, &placeHolder);
 
 	if (!InitShaders())
 		return false;
@@ -46,6 +45,10 @@ bool Game::Initialise(Direct3D* renderer, InputController* input)
 
 	if (!LoadTextures())
 		return false;
+
+	m_player = new Player(m_input);
+	m_bulletFactory = new BulletFactory(m_meshManager, m_textureManager, m_diffuseTexturedShader);
+	m_collisionManager = new CollisionManager(m_player, m_bulletFactory);
 
 	LoadFonts();
 	InitUI();
@@ -85,6 +88,9 @@ bool Game::LoadMeshes()
 	if (!m_meshManager->Load(m_renderer, "Assets/Meshes/enemy.obj"))
 		return false;
 
+	if (!m_meshManager->Load(m_renderer, "Assets/Meshes/bullet.obj"))
+		return false;
+
 	return true;
 }
 
@@ -115,6 +121,9 @@ bool Game::LoadTextures()
 		return false;
 
 	if (!m_textureManager->Load(m_renderer, "Assets/Textures/health.png"))
+		return false;
+
+	if (!m_textureManager->Load(m_renderer, "Assets/Textures/bullet.png"))
 		return false;
 
 	return true;
@@ -160,13 +169,8 @@ void Game::InitGameWorld()
 	//creats ground mesh
 	m_ground = new StaticObject(m_meshManager->GetMesh("Assets/Meshes/ground.obj"),
 											m_diffuseTexturedShader,
-											m_textureManager->GetTexture("Assets/Textures/ground.png"),
-											Vector3::Zero);
+											m_textureManager->GetTexture("Assets/Textures/ground.png"));
 
-	// A player will select a random starting position.
-	// We need to tell the player about the board it is standing on so it can validate movement
-	// and ask the board what type of tile it is standing on.
-	m_player = new Player(m_input, m_currentCam);
 }
 
 void Game::Update(float timestep)
@@ -176,9 +180,11 @@ void Game::Update(float timestep)
 
 	m_input->BeginUpdate();
 	
-	m_player->Update(timestep);
+	m_player->Update(timestep, m_currentCam, m_bulletFactory);
 
-	//m_collisionManager->CheckCollisions();
+	m_bulletFactory->Update(timestep);
+	
+	m_collisionManager->CheckCollisions();
 
 	RefreshUI();
 
@@ -201,6 +207,8 @@ void Game::Render()
 	m_ground->Render(m_renderer, m_currentCam);
 
 	m_player->Render(m_renderer, m_currentCam);
+	
+	m_bulletFactory->Render(m_renderer, m_currentCam);
 
 	DrawUI();
 
@@ -266,10 +274,22 @@ void Game::Shutdown()
 		m_player = NULL;
 	}
 
+	if (m_bulletFactory)
+	{
+		delete m_bulletFactory;
+		m_bulletFactory = NULL;
+	}
+
 	if (m_ground)
 	{
 		delete m_ground;
 		m_ground = NULL;
+	}
+
+	if (m_collisionManager)
+	{
+		delete m_collisionManager;
+		m_collisionManager = NULL;
 	}
 
 	if (m_currentCam)

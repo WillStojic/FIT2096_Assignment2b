@@ -19,6 +19,7 @@
 #include "GameObject.h"
 #include "StaticObject.h"
 #include "Player.h"
+#include "BulletFactory.h"
 #include <vector>
 
 #include "DirectXTK/SpriteBatch.h"
@@ -44,8 +45,8 @@ private:
 
 	// Our game data.
 	Player* m_player;
-	GameObject* placeHolder;
 	StaticObject* m_ground;
+	BulletFactory* m_bulletFactory;
 
 	std::wstring m_gemsCollectedText;
 	std::wstring m_scoreText;

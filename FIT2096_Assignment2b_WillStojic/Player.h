@@ -11,6 +11,9 @@
 #include "PhysicsObject.h"
 #include "InputController.h"
 #include "FirstPersonCamera.h"
+#include "MeshManager.h"
+#include "TextureManager.h"
+#include "BulletFactory.h"
 
 class Player : public PhysicsObject
 {
@@ -18,19 +21,25 @@ private:
 	// A Player should listen for its own input
 	InputController* m_input;
 
-	FirstPersonCamera* m_FPScamera;
+	Bullet* m_bulletManager;
+	MeshManager* m_meshManager;
+	TextureManager* m_textureManager;
 
 	// Game variables
 	int m_gems;
 	int m_score;
 	int m_monstersDefeated;
+	int shootTicker;
 
 	float m_moveSpeed;
+	float m_jumpStrength;
 public:
-	Player(InputController* input, FirstPersonCamera* camera);
+	Player(InputController* input);
 	~Player();
 
-	void Update(float timestep);
+	void Update(float timestep, FirstPersonCamera* &camera, BulletFactory* &bulletFactory);
+
+	void TakeDamage(int damage) { m_health -= damage; }
 
 	// Game will use these to output info to the player
 	int GetNumberOfMonstersDefeated() { return m_monstersDefeated; }

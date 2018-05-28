@@ -1,9 +1,11 @@
 #include "CollisionManager.h"
+#include "Bullet.h"
+#include "MathsHelper.h"
 
-CollisionManager::CollisionManager(Player* &player, std::vector<GameObject*>* &gameObject)
+CollisionManager::CollisionManager(Player* &player, BulletFactory* &bulletFactory)
 {
-	m_CPlayer = player;
-	m_items = gameObject;
+	m_Player = player;
+	m_BulletFactory = bulletFactory;
 
 	// Clear our arrays to 0 (NULL)
 	memset(m_currentCollisions, 0, sizeof(m_currentCollisions));
@@ -14,8 +16,7 @@ CollisionManager::CollisionManager(Player* &player, std::vector<GameObject*>* &g
 
 void CollisionManager::CheckCollisions()
 {
-	// Check kart to item box collisions
-	//PlayerToItem();
+	BulletImpact();
 
 	// Move all current collisions into previous
 	memcpy(m_previousCollisions, m_currentCollisions, sizeof(m_currentCollisions));
@@ -56,56 +57,41 @@ void CollisionManager::AddCollision(GameObject* first, GameObject* second)
 	m_nextCurrentCollisionSlot += 2;
 }
 
-//void CollisionManager::PlayerToItem()
-//{
-//	// We'll check each kart against every item box
-//	// Note this is not overly efficient, both in readability and runtime performance
-//
-//		for (unsigned int j = 0; j < m_itemBoxes->size(); j++)
-//		{
-//			// Don't need to store pointer to these objects again but favouring clarity
-//			// Can't index into these directly as they're a pointer to a vector. We need to dereference them first
-//			Kart* kart = (*m_karts)[i];
-//			ItemBox* itemBox = (*m_itemBoxes)[j];
-//
-//			// TODO Fetch bounding box from the current kart and item box
-//			CBoundingBox kartBounds =
-//			CBoundingBox itemBoxBounds =
-//
-//			// TODO Are they colliding this frame?
-//			bool isColliding = 
-//
-//			// Were they colliding last frame?
-//			bool wasColliding = ArrayContainsCollision(m_previousCollisions, kart, itemBox);
-//
-//			if (isColliding)
-//			{
-//				// Register the collision
-//				AddCollision(kart, itemBox);
-//
-//				if (wasColliding)
-//				{
-//					// We are colliding this frame and we were also colliding last frame - that's a collision stay
-//					
-//					// TODO Tell the Kart it is colliding with an Item Box (collision stay)
-//					
-//				}
-//				else
-//				{
-//					// We are colliding this frame and we weren't last frame - that's a collision enter
-//
-//					// TODO Tell the Kart it has begun colliding with an Item Box (collision enter)
-//				}
-//			}
-//			else
-//			{
-//				if (wasColliding)
-//				{
-//					// We aren't colliding this frame but we were last frame - that's a collision exit
-//					
-//					// TODO Tell the Kart it is no longer colliding with an Item Box (collision exit)
-//				}
-//			}
-//		}
-//
-//}
+void CollisionManager::BulletImpact()
+{
+	for (unsigned int i = 0; i < m_BulletFactory->m_bullets.size(); ++i)
+	{
+		Bullet* bullet = m_BulletFactory->m_bullets[i];
+
+		CBoundingSphere* bulletBounds = bullet->GetBoundingSphere();
+		CBoundingBox* playerBounds = m_Player->GetBoundingBox();
+
+		bool isColliding = CheckCollision(*bulletBounds, *playerBounds);
+
+		bool wasColliding = ArrayContainsCollision(m_previousCollisions, bullet, m_Player);
+
+		if (isColliding)
+		{
+			AddCollision(bullet, m_Player);
+
+			if (wasColliding)
+			{
+				//collision stay
+
+			}
+			else
+			{
+				//collision enter
+				m_Player->TakeDamage(MathsHelper::RandomRange(10, 30));
+			}
+		}
+		else
+		{
+			if (wasColliding)
+			{
+				//collision exit
+
+			}
+		}
+	}
+}

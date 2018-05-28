@@ -23,7 +23,8 @@ protected:
 	int m_skill;
 	int m_ammo;
 
-	CBoundingBox m_boundingBox;
+	CBoundingBox* m_boundingBox;
+	CBoundingSphere* m_boundingSphere;
 public:
 	GameObject();
 	GameObject(Mesh* mesh, Shader* shader);
@@ -48,6 +49,8 @@ public:
 	Mesh* GetMesh() { return m_mesh; }
 	Texture* GetTexture() { return m_texture; }
 	Shader* GetShader() { return m_shader; }
+	CBoundingBox* GetBoundingBox() { return m_boundingBox; }
+	CBoundingSphere* GetBoundingSphere() { return m_boundingSphere; }
 
 	// Mutators
 	void SetTargetPosition(Vector3 targetPos) { m_targetPosition = targetPos; }

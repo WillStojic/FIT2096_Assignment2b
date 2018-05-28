@@ -1,11 +1,10 @@
 #include "Player.h"
 #include "MathsHelper.h"
 
-Player::Player(InputController* input, FirstPersonCamera* camera)
+Player::Player(InputController* input)
 	: PhysicsObject(Vector3::Zero)
 {
 	m_input = input;
-	m_FPScamera = camera;
 	m_health = 100.0f;
 	// The player is much stronger than any monster on the board
 	m_skill = 20;
@@ -14,32 +13,36 @@ Player::Player(InputController* input, FirstPersonCamera* camera)
 	m_score = 0;
 	m_monstersDefeated = 0;
 
-	m_moveSpeed = 0.5f;
+	m_moveSpeed = 5.0f;
+	m_jumpStrength = 0.3f;
 
 	//player has no mesh, therefore bounds are manually set
-	m_boundingBox = CBoundingBox(m_position + Vector3(-0.5f, 0.0f, -0.5f), m_position + Vector3(0.5f, 1.6f, 0.5f));
+	m_boundingBox = new CBoundingBox(m_position + Vector3(-0.05f, 1.1f, -0.05f), m_position + Vector3(0.05f, 1.8f, 0.05f));
 }
 
 Player::~Player() {}
 
-void Player::Update(float timestep)
+void Player::Update(float timestep, FirstPersonCamera* &camera, BulletFactory* &bulletFactory)
 {
 	m_position = Vector3::Lerp(m_position, m_targetPosition, timestep * m_moveSpeed);
 
 	//attaches camera to player
-	m_FPScamera->SetPosition(m_position + Vector3(0.0f, 1.6f, 0.0f));
-
+	camera->SetPosition(m_position + Vector3(0.0f, 1.6f, 0.0f));
 
 	//save on function calls by intialising local variables
-	float m_heading = m_FPScamera->GetHeading();
-	float m_pitch = m_FPScamera->GetPitch();
+	float m_heading = camera->GetHeading();
+	float m_pitch = camera->GetPitch();
 
 	// Accumulate change in mouse position 
-	m_heading += m_input->GetMouseDeltaX() * m_FPScamera->GetRotationSpeed() * timestep;
-	m_pitch += m_input->GetMouseDeltaY() * m_FPScamera->GetRotationSpeed() * timestep;
+	m_heading += m_input->GetMouseDeltaX() * camera->GetRotationSpeed() * timestep;
+	m_pitch += m_input->GetMouseDeltaY() * camera->GetRotationSpeed() * timestep;
+
 
 	// Limit how far the player can look down and up
 	m_pitch = MathsHelper::Clamp(m_pitch, ToRadians(-80.0f), ToRadians(80.0f));
+
+	camera->SetHeading(m_heading);
+	camera->SetPitch(m_pitch);
 
 	// Wrap heading and pitch up in a matrix so we can transform our look at vector
 	// Heading is controlled by MouseX (horizontal movement) but it is a rotation around Y
@@ -55,25 +58,39 @@ void Player::Update(float timestep)
 	Vector3 localForwardXZ = localRight.Cross(Vector3(0, 1, 0));
 
 	// We're going to need this a lot. Store it locally here to save on our function calls 
-	Vector3 currentPos = m_FPScamera->GetPosition();
+	Vector3 currentPos = camera->GetPosition();
+
+	Vector3 translation = m_position;
 
 	//moves the player's position
 	if (m_input->GetKeyHold('W'))
 	{
-		m_targetPosition += localForwardXZ * m_moveSpeed;
+		translation += localForwardXZ;
 	}
 	if (m_input->GetKeyHold('S'))
 	{
-		m_targetPosition -= localForwardXZ * m_moveSpeed;
+		translation -= localForwardXZ;
 	}
 	if (m_input->GetKeyHold('A'))
 	{
-		m_targetPosition -= localRight * m_moveSpeed;
+		translation -= localRight;
 	}
 	if (m_input->GetKeyHold('D'))
 	{
-		m_targetPosition += localRight * m_moveSpeed;
+		translation += localRight;
 	}
+	if (m_input->GetKeyHold(VK_SHIFT))
+	{
+		m_moveSpeed = 10;
+	}
+	else
+		m_moveSpeed = 5;
+	if (m_input->GetKeyDown(VK_SPACE) && m_position.y < 0.1)
+	{
+		this->Jump(m_jumpStrength);
+	}
+
+	m_targetPosition = translation;
 
 	PhysicsObject::Update(timestep);
 
@@ -83,15 +100,30 @@ void Player::Update(float timestep)
 	// Transform a world forward vector into local space (take pitch and heading into account)
 	Vector3 lookAt = Vector3::TransformNormal(Vector3(0, 0, 1), lookAtRotation);
 
+	++shootTicker;
+
+	if (m_input->GetMouseDown(0) && shootTicker > 15)
+	{
+		Vector3 aim = lookAt * 50;
+		aim += currentPos;
+		Vector3 offset = Vector3::TransformNormal(Vector3(0, 0, 0.5), lookAtRotation) + currentPos;
+		bulletFactory->InitialiseBullet(offset, aim);
+
+		shootTicker = 0;
+	}
+
 	// At this point, our look-at vector is still relative to the origin
 	// Add our position to it so it originates from the camera and points slightly in front of it
 	// Remember the look-at vector needs to describe a point in the world relative to the origin
 	lookAt += currentPos;
+
+	//orient player's y rotation to camera
 	m_rotY = lookAt.y;
 
 	// Use parent's mutators so isDirty flags get flipped
-	m_FPScamera->SetLookAt(lookAt);
+	camera->SetLookAt(lookAt);
+	camera->SetPosition(currentPos);
 
-	m_boundingBox.SetMin(m_position + Vector3(-0.5f, 0.0f, -0.5f));
-	m_boundingBox.SetMax(m_position + Vector3(0.5f, 1.6f, 0.5f));
+	m_boundingBox->SetMin(m_position + Vector3(-0.05f, 1.1f, -0.05f));
+	m_boundingBox->SetMax(m_position + Vector3(0.05f, 1.8f, 0.05f));
 }

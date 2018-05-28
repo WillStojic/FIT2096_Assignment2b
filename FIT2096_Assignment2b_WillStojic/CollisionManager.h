@@ -4,15 +4,17 @@
 #include <vector>
 #include "Collisions.h"
 #include "Player.h"
-#include "GameObject.h"
+#include "BulletFactory.h"
+#include "StaticObject.h"
 
 #define MAX_ALLOWED_COLLISIONS 2048
 
 class CollisionManager
 {
 private:
-	Player* m_CPlayer;
-	std::vector<GameObject*>* m_items;
+	Player* m_Player;
+	BulletFactory* m_BulletFactory;
+
 
 	GameObject* m_currentCollisions[MAX_ALLOWED_COLLISIONS];
 
@@ -28,10 +30,10 @@ private:
 	void AddCollision(GameObject* first, GameObject* second);
 
 	// Collision check helpers
-	//void PlayerToItem();
+	void BulletImpact();
 
 public:
-	CollisionManager(Player* &player, std::vector<GameObject*>* &gameObject);
+	CollisionManager(Player* &player, BulletFactory* &bulletFactory);
 	void CheckCollisions();
 
 };

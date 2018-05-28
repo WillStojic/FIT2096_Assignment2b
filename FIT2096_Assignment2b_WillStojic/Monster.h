@@ -9,6 +9,7 @@
 
 #include "GameObject.h"
 #include "TextureManager.h"
+#include "MeshManager.h"
 
 class Monster : public GameObject
 {

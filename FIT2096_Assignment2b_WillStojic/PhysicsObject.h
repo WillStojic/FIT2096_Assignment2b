@@ -11,11 +11,16 @@ protected:
 
 	Vector3 m_velocity;
 	Vector3 m_acceleration;
+	
+	Vector3 m_positionDelta;
+	Vector3 m_gravity = Vector3(0.0f, -0.01f, 0.0f);
 
 	float m_frictionAmount;
 
 	void ApplyForce(Vector3 force);
 	void ApplyFriction(float strength);
+	void Jump(float strength);
+
 
 public:
 	PhysicsObject(Vector3 position);
